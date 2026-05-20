@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#f5c842">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Zeezoapp</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--gold:#f5c842;--gold-dim:#a88820;--green:#3dffa0;--blue:#5bc8ff;--red:#ff6b6b;--purple:#c084fc;--orange:#fb923c;--text:#e8e8f0;--muted:#6b6b80;--muted2:#4a4a5a;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);white-space:nowrap;}
+.nav-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.nav-btn.active{background:var(--gold);color:#000;font-weight:600;border-color:var(--gold);}
+.alarm-bar{display:flex;align-items:center;padding:6px 16px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px;}
+.alarm-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0;}
+.alarm-dot.off{background:var(--red);animation:none;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.alarm-txt{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;flex:1;}
+.clock{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);}
+.page{flex:1;overflow-y:auto;display:none;padding:14px;}
+.page.active{display:block;}
+
+/* TODAY */
+.today-hero{background:linear-gradient(135deg,var(--surface),rgba(245,200,66,0.06));border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.today-hero::before{content:'';position:absolute;top:-50px;right:-50px;width:150px;height:150px;background:radial-gradient(circle,rgba(245,200,66,0.12) 0%,transparent 70%);pointer-events:none;}
+.today-dayname{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:2px;color:var(--gold);line-height:1;}
+.today-datestr{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-top:2px;}
+.phase-pill{display:inline-block;margin-top:10px;background:rgba(245,200,66,0.12);border:1px solid var(--gold-dim);border-radius:20px;padding:4px 12px;font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:1px;}
+.next-up{margin-top:12px;background:var(--surface2);border-radius:8px;padding:10px 14px;}
+.next-up-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.next-up-block{font-size:14px;font-weight:600;}
+.next-up-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-top:2px;}
+
+/* APS TRACKER */
+.aps-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.aps-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.aps-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);}
+.aps-edit-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);cursor:pointer;}
+.aps-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.aps-subj{font-size:12px;color:var(--muted);width:80px;flex-shrink:0;}
+.aps-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.aps-bar-fill{height:100%;border-radius:3px;transition:width 0.5s ease;}
+.aps-pct{font-family:'DM Mono',monospace;font-size:10px;width:36px;text-align:right;flex-shrink:0;}
+.aps-total{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.aps-total-lbl{font-size:12px;color:var(--muted);}
+.aps-total-val{font-family:'Bebas Neue',sans-serif;font-size:28px;}
+.aps-total-target{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+
+/* MOTIVATION */
+.motiv-card{background:var(--surface);border:1px solid var(--gold-dim);border-radius:12px;padding:16px;margin-bottom:14px;}
+.motiv-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.motiv-text{font-size:13px;line-height:1.65;color:var(--text);}
+.motiv-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.speak-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;}
+.speak-btn:disabled{opacity:0.5;}
+.next-btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.deep-motiv-btn{background:rgba(192,132,252,0.12);color:var(--purple);border:1px solid var(--purple);border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* BLOCKS */
+.section-hdr{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--muted);margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
+.section-hdr::after{content:'';flex:1;height:1px;background:var(--border);}
+.section-hdr.gold{color:var(--gold);}
+.block-card{border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity 0.15s;}
+.block-card:active{opacity:0.75;}
+.block-card.past{opacity:0.35;}
+.block-card.current{box-shadow:0 0 0 2px var(--gold);}
+.block-card.optional-block{border-style:dashed;opacity:0.6;}
+.bdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.binfo{flex:1;min-width:0;}
+.btime{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:2px;}
+.blabel{font-size:13px;font-weight:500;}
+.bnote{font-size:11px;color:var(--muted);margin-top:2px;}
+.balarm{font-size:13px;flex-shrink:0;}
+.b-jog{background:rgba(61,255,160,0.10);border-left:3px solid var(--green);}
+.b-jog .bdot{background:var(--green);}
+.b-transport{background:rgba(107,107,128,0.10);border-left:3px solid var(--muted2);}
+.b-transport .bdot{background:var(--muted2);}
+.b-maths{background:rgba(245,200,66,0.12);border-left:3px solid var(--gold);}
+.b-maths .bdot{background:var(--gold);}
+.b-biz{background:rgba(91,200,255,0.11);border-left:3px solid var(--blue);}
+.b-biz .bdot{background:var(--blue);}
+.b-econ{background:rgba(192,132,252,0.11);border-left:3px solid var(--purple);}
+.b-econ .bdot{background:var(--purple);}
+.b-aftercare{background:rgba(107,107,128,0.10);border-left:3px solid var(--muted2);}
+.b-aftercare .bdot{background:var(--muted2);}
+.b-training{background:rgba(61,255,160,0.10);border-left:3px solid var(--green);}
+.b-training .bdot{background:var(--green);}
+.b-game{background:rgba(255,107,107,0.10);border-left:3px solid var(--red);}
+.b-game .bdot{background:var(--red);}
+.b-rest{background:rgba(30,30,45,0.5);border-left:3px solid var(--border);}
+.b-rest .bdot{background:var(--border);}
+.b-grandma{background:rgba(251,146,60,0.10);border-left:3px solid var(--orange);}
+.b-grandma .bdot{background:var(--orange);}
+.b-church{background:rgba(192,132,252,0.10);border-left:3px solid var(--purple);}
+.b-church .bdot{background:var(--purple);}
+.b-video{background:rgba(255,107,107,0.10);border-left:3px solid var(--red);}
+.b-video .bdot{background:var(--red);}
+.b-stretch{background:rgba(61,255,160,0.07);border-left:3px solid var(--green);}
+.b-stretch .bdot{background:var(--green);}
+.add-btn{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:12px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;margin-top:8px;}
+
+/* WEEK TABS */
+.week-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:14px;scrollbar-width:none;}
+.week-tabs::-webkit-scrollbar{display:none;}
+.wtab{flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 12px;text-align:center;cursor:pointer;min-width:46px;}
+.wtab.active{background:var(--gold);border-color:var(--gold);}
+.wtab.active .wd,.wtab.active .wdate{color:#000;}
+.wd{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;}
+.wdate{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:1px;}
+
+/* FULL WEEK */
+.fullweek-day{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;}
+.fullweek-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.fullweek-dayname{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);}
+.fullweek-count{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.fullweek-blocks{padding:10px 12px;}
+
+/* STRETCHES PAGE */
+.stretch-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.stretch-section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:4px;}
+.stretch-subtitle{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.stretch-card{background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:10px;}
+.stretch-num{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;margin-bottom:4px;}
+.stretch-name{font-weight:600;font-size:14px;margin-bottom:2px;}
+.stretch-target{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;margin-bottom:8px;}
+.stretch-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+.stretch-timing{margin-top:8px;background:var(--bg);border-radius:6px;padding:7px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.speak-stretch-btn{margin-top:8px;background:rgba(61,255,160,0.1);border:1px solid var(--green);color:var(--green);border-radius:7px;padding:6px 12px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* DEEP MOTIVATION */
+.deep-card{background:var(--surface);border-radius:12px;padding:18px;margin-bottom:14px;border-left:3px solid var(--gold);}
+.deep-tag{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.deep-text{font-size:13px;line-height:1.7;color:var(--text);}
+
+/* SETTINGS */
+.set-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;}
+.set-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);margin-bottom:14px;}
+.set-row{margin-bottom:12px;}
+.set-lbl{font-size:11px;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;letter-spacing:1px;}
+.set-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;}
+.set-input:focus{outline:none;border-color:var(--gold);}
+.set-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;margin-top:4px;}
+.set-btn.sec{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.set-btn.danger{background:rgba(255,107,107,0.12);color:var(--red);border:1px solid var(--red);}
+.set-status{font-size:11px;color:var(--green);margin-top:6px;font-family:'DM Mono',monospace;}
+.set-status.err{color:var(--red);}
+.set-info{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;}
+
+/* APS EDIT MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:none;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:22px;width:100%;max-height:88vh;overflow-y:auto;border-top:1px solid var(--border);}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);margin-bottom:18px;}
+.modal-row{margin-bottom:12px;}
+.modal-lbl{font-size:11px;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;}
+.modal-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;}
+.modal-input:focus{outline:none;border-color:var(--gold);}
+.modal-btns{display:flex;gap:8px;margin-top:18px;}
+.mbtn{flex:1;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.mbtn.save{background:var(--gold);color:#000;}
+.mbtn.del{background:rgba(255,107,107,0.12);color:var(--red);border:1px solid var(--red);}
+.mbtn.cancel{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12px;z-index:200;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">ZEEZOAPP</div>
+  <div class="nav-btns">
+    <button class="nav-btn active" onclick="showPage('today',this)">Today</button>
+    <button class="nav-btn" onclick="showPage('week',this)">Week</button>
+    <button class="nav-btn" onclick="showPage('fullweek',this)">All Days</button>
+    <button class="nav-btn" onclick="showPage('stretches',this)">Stretch</button>
+    <button class="nav-btn" onclick="showPage('motivation',this)">Mindset</button>
+    <button class="nav-btn" onclick="showPage('settings',this)">⚙️</button>
+  </div>
+</div>
+<div class="alarm-bar">
+  <div class="alarm-dot" id="alarmDot"></div>
+  <div class="alarm-txt" id="alarmTxt">ALARMS ACTIVE</div>
+  <div class="clock" id="clockEl"></div>
+</div>
+
+<!-- TODAY -->
+<div class="page active" id="page-today">
+  <div class="today-hero">
+    <div class="today-dayname" id="todayDay">MONDAY</div>
+    <div class="today-datestr" id="todayDate">20 MAY 2026</div>
+    <div class="phase-pill" id="phasePill">PHASE 1 — FOUNDATION</div>
+    <div class="next-up">
+      <div class="next-up-lbl">Next Up</div>
+      <div class="next-up-block" id="nextBlock">Loading...</div>
+      <div class="next-up-time" id="nextTime"></div>
+    </div>
+  </div>
+
+  <div class="aps-card">
+    <div class="aps-header">
+      <div class="aps-title">📊 APS TRACKER</div>
+      <button class="aps-edit-btn" onclick="openApsModal()">Update Marks</button>
+    </div>
+    <div id="apsRows"></div>
+    <div class="aps-total">
+      <div>
+        <div class="aps-total-lbl">Current APS</div>
+        <div class="aps-total-target">Target: 34+</div>
+      </div>
+      <div class="aps-total-val" id="apsTotalVal" style="color:var(--red)">27</div>
+    </div>
+  </div>
+
+  <div class="motiv-card">
+    <div class="motiv-lbl">🔥 Daily Motivation</div>
+    <div class="motiv-text" id="motivText">Loading...</div>
+    <div class="motiv-btns">
+      <button class="speak-btn" id="speakBtn" onclick="speakMotivation()"><span>▶</span> Speak It</button>
+      <button class="next-btn" onclick="nextQuote()">Next</button>
+      <button class="deep-motiv-btn" onclick="showPage('motivation',document.querySelector('.nav-btn:nth-child(5)'))">Deep Read</button>
+    </div>
+  </div>
+
+  <div class="section-hdr gold" id="todayDayHdr">TODAY'S SCHEDULE</div>
+  <div id="todayBlocks"></div>
+  <div class="add-btn" onclick="openAddModal(getCurrentDay())">+ Add Block to Today</div>
+</div>
+
+<!-- WEEK VIEW -->
+<div class="page" id="page-week">
+  <div class="week-tabs" id="weekTabs"></div>
+  <div class="section-hdr gold" id="weekDayHdr">MONDAY</div>
+  <div id="weekBlocks"></div>
+  <div class="add-btn" id="weekAddBtn">+ Add Block</div>
+</div>
+
+<!-- FULL WEEK -->
+<div class="page" id="page-fullweek">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--gold);margin-bottom:4px;">FULL WEEKLY PLAN</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">All 7 days at a glance. Tap any block to edit.</div>
+  <div id="fullWeekContainer"></div>
+</div>
+
+<!-- STRETCHES -->
+<div class="page" id="page-stretches">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--green);margin-bottom:4px;">MOBILITY ROUTINES</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Pre-jog warm-up + nightly lower & upper body.</div>
+
+  <div class="stretch-section">
+    <div class="stretch-section-title" style="color:var(--green);">☀️ Pre-Jog Morning Routine</div>
+    <div class="stretch-subtitle">Do these at 05:15 before every jog. Never run on a cold body. Dynamic movements only — don't hold too long.</div>
+    <div id="preJogStretches"></div>
+  </div>
+
+  <div class="stretch-section">
+    <div class="stretch-section-title" style="color:var(--gold);">🌙 Nightly — Lower Body & Groin</div>
+    <div class="stretch-subtitle">Every night before bed. Focus on groin and hips. Essential for hockey players. Do not skip on training days.</div>
+    <div id="lowerStretches"></div>
+  </div>
+
+  <div class="stretch-section">
+    <div class="stretch-section-title" style="color:var(--blue);">🌙 Nightly — Upper Body & Hockey-Specific</div>
+    <div class="stretch-subtitle">Counteracts the bent-over hockey posture. Shoulders, wrists, upper back and neck. Takes 8 minutes.</div>
+    <div id="upperStretches"></div>
+  </div>
+</div>
+
+<!-- MOTIVATION -->
+<div class="page" id="page-motivation">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--gold);margin-bottom:4px;">MINDSET & MOTIVATION</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Read these on the hard days. They were written for you.</div>
+  <div id="deepMotivCards"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="set-section">
+    <div class="set-title">🔊 Voice Settings</div>
+    <div class="set-row">
+      <div class="set-lbl">ELEVENLABS API KEY</div>
+      <input class="set-input" type="password" id="apiKeyInput" placeholder="Paste your ElevenLabs API key">
+    </div>
+    <div class="set-row">
+      <div class="set-lbl">VOICE ID</div>
+      <input class="set-input" type="text" id="voiceIdInput" placeholder="Paste your Voice ID">
+    </div>
+    <button class="set-btn" onclick="saveVoiceSettings()">Save Voice Settings</button>
+    <button class="set-btn sec" style="margin-top:8px;" onclick="testVoice()">Test Voice</button>
+    <div class="set-status" id="voiceStatus"></div>
+  </div>
+  <div class="set-section">
+    <div class="set-title">🔔 Alarms & Notifications</div>
+    <button class="set-btn" onclick="requestNotifPerm()">Enable Notifications</button>
+    <div class="set-status" id="notifStatus"></div>
+    <button class="set-btn sec" style="margin-top:8px;" onclick="testAlarm()">Fire Test Alarm</button>
+  </div>
+  <div class="set-section">
+    <div class="set-title">📊 Update APS Marks</div>
+    <div class="set-info">Tap "Update Marks" on the Today page to update your current percentages. Your APS score recalculates automatically.</div>
+  </div>
+  <div class="set-section">
+    <div class="set-title">📋 Schedule</div>
+    <button class="set-btn danger" onclick="resetSchedule()">Reset to Default Schedule</button>
+    <div class="set-info">Tap any block on Today or Week view to edit or delete it. Tap "+ Add Block" to add new ones.</div>
+  </div>
+  <div class="set-section">
+    <div class="set-title">📱 Install App</div>
+    <div class="set-info"><strong style="color:var(--text);">Android:</strong> Chrome 3-dot menu → "Add to Home Screen" → Install<br><br><strong style="color:var(--text);">Laptop:</strong> Install icon in Chrome/Edge address bar → Install<br><br><strong style="color:var(--text);">Keep alarms alive:</strong> Settings → Apps → Chrome → Battery → Unrestricted</div>
+    <button class="set-btn" id="installBtn" style="display:none;margin-top:12px;" onclick="installApp()">Install App Now</button>
+  </div>
+</div>
+
+<!-- BLOCK EDIT MODAL -->
+<div class="modal-overlay" id="blockModal">
+  <div class="modal">
+    <div class="modal-title" id="blockModalTitle">Edit Block</div>
+    <div class="modal-row"><div class="modal-lbl">LABEL</div><input class="modal-input" id="editLabel" type="text" placeholder="e.g. 📐 MATHS — Library"></div>
+    <div class="modal-row"><div class="modal-lbl">START TIME</div><input class="modal-input" id="editStart" type="time"></div>
+    <div class="modal-row"><div class="modal-lbl">END TIME (optional)</div><input class="modal-input" id="editEnd" type="time"></div>
+    <div class="modal-row"><div class="modal-lbl">TYPE</div>
+      <select class="modal-input" id="editType">
+        <option value="b-maths">📐 Maths</option>
+        <option value="b-biz">📊 Business</option>
+        <option value="b-econ">📈 Economics</option>
+        <option value="b-jog">🏃 Jog / Exercise</option>
+        <option value="b-stretch">🧘 Stretch / Mobility</option>
+        <option value="b-training">🏑 Hockey Training</option>
+        <option value="b-video">🎬 AI Video Work</option>
+        <option value="b-transport">🚗 Transport</option>
+        <option value="b-aftercare">👦 Aftercare</option>
+        <option value="b-game">🏆 Game</option>
+        <option value="b-grandma">👵 Family</option>
+        <option value="b-church">⛪ Church</option>
+        <option value="b-rest">😴 Rest / Free</option>
+      </select>
+    </div>
+    <div class="modal-row"><div class="modal-lbl">ALARM ON/OFF</div>
+      <select class="modal-input" id="editAlarm"><option value="1">🔔 Alarm ON</option><option value="0">🔕 Alarm OFF</option></select>
+    </div>
+    <div class="modal-row"><div class="modal-lbl">VOICE MESSAGE (spoken at alarm time)</div><input class="modal-input" id="editAlarmMsg" type="text" placeholder="What should the voice say?"></div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="closeModal('blockModal')">Cancel</button>
+      <button class="mbtn del" id="deleteBtn" onclick="deleteBlock()">Delete</button>
+      <button class="mbtn save" onclick="saveBlock()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- APS MODAL -->
+<div class="modal-overlay" id="apsModal">
+  <div class="modal">
+    <div class="modal-title">Update Your Marks</div>
+    <div class="modal-row"><div class="modal-lbl">MATHS (%)</div><input class="modal-input" id="apsMaths" type="number" min="0" max="100" placeholder="e.g. 41"></div>
+    <div class="modal-row"><div class="modal-lbl">BUSINESS (%)</div><input class="modal-input" id="apsBiz" type="number" min="0" max="100" placeholder="e.g. 53"></div>
+    <div class="modal-row"><div class="modal-lbl">ECONOMICS (%)</div><input class="modal-input" id="apsEcon" type="number" min="0" max="100" placeholder="e.g. 41"></div>
+    <div class="modal-row"><div class="modal-lbl">ACCOUNTING (%)</div><input class="modal-input" id="apsAcc" type="number" min="0" max="100" placeholder="e.g. 48"></div>
+    <div class="modal-btns">
+      <button class="mbtn cancel" onclick="closeModal('apsModal')">Cancel</button>
+      <button class="mbtn save" onclick="saveAps()">Update APS</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════ DATA ═══════════════════
+
+const QUOTES = [
+  "5AM. Most people are asleep dreaming about the life you are out here building. Get up. The library opens and you will be first in.",
+  "You got knocked out of UFS two weeks in. Good. Now you know exactly what is at stake. Use that anger. Channel it into every Maths problem you sit with today.",
+  "Discipline is not something you feel. It is something you do when you feel nothing. Open the book anyway.",
+  "The version of you that walks into UFS Law in 2027 is being built right now, in these early morning sessions, when nobody is watching.",
+  "Every person who achieved something hard had a moment where they thought they could not. You are in that moment. Keep going.",
+  "You are not just studying for a number. You are studying to prove to yourself that you can do hard things. That proof will carry you for life.",
+  "The jog is non-negotiable. The library is non-negotiable. The stretches are non-negotiable. Not because someone told you so — because you decided so.",
+  "Most people wait until they feel ready. Ready never comes. You start anyway. That is what separates the people who make it.",
+  "Your circumstances are not your identity. Being kicked out does not define you. What you do next does.",
+  "Stay hard. No shortcuts, no excuses. The work you put in today is interest on your future. Pay it.",
+  "The mind will quit before the body ever does. When you want to close the Maths book — that is exactly when you do five more questions.",
+  "You are taking your brother to school, your mom to work, your grandma to her appointment — and still finding time to study. That is the kind of character that makes great lawyers.",
+  "One day or day one. You already chose day one. Do not let today become one day.",
+  "Comfort is the enemy of growth. You know that. You have lived it. Now use it.",
+  "The goal is 34. The gap is 7 points. Seven points across three subjects over 22 weeks. That is not a dream — that is a plan. Execute it.",
+  "Law is not just a degree. It is a weapon. And you are sharpening it every single time you sit down and study.",
+  "When you feel like you cannot do it — remember they told you that you did not qualify. Remember what that felt like. Let it fuel you.",
+  "Small actions, repeated daily, compound into outcomes that look like miracles to everyone who did not see the work.",
+  "You do not need to be the most talented. You need to be the most consistent. Show up every day and the results will take care of themselves.",
+  "This is the hardest chapter. The comeback chapter. The one you will tell your children about. Make it worth telling."
+];
+
+const DEEP_MOTIVATIONS = [
+  { tag:"ON BEING KNOCKED DOWN", color:"var(--gold)", text:"Getting kicked out of UFS two weeks in was not a failure — it was a mismatch of timing. The fact that you qualified for the extended programme proves the ability was already there. You did not fail. The situation failed you. Now you are going back on your own terms, better prepared, and with something most applicants will not have: a reason that actually means something." },
+  { tag:"ON DISCIPLINE VS MOTIVATION", color:"var(--blue)", text:"Motivation is a feeling. It comes and goes — some mornings you will wake up fired up, most mornings you will not. Discipline is a decision. It is showing up at the library at 08:30 even when you do not feel like it. It is doing 45 minutes of Maths on a Thursday when the Grandma appointment already ate your morning. The people who pass do not always feel motivated. They just do not give themselves the option to stop." },
+  { tag:"ON CARRYING YOUR FAMILY", color:"var(--purple)", text:"You are taking your brother to school, your mom to work, picking up your grandma, and helping at aftercare — all while trying to rebuild your own future. That is not a burden. That is character. The responsibility you carry for your family is the same thing that will make you an exceptional law student, and one day, an exceptional lawyer. You are already doing hard things. Studying is just one more." },
+  { tag:"ON THE MORNING JOG", color:"var(--green)", text:"Every morning you lace up at 05:35 when it is dark and cold and you do not want to — you are proving something to yourself before the day has even started. That proof compounds. After two weeks of morning jogs, something shifts. You start to believe you are the kind of person who follows through. And when you believe that, opening a textbook gets easier." },
+  { tag:"ON THE HARD DAYS", color:"var(--orange)", text:"There will be days where you open a Maths paper and understand nothing. Where you read the same Economics paragraph four times and it still does not click. Those days are not signs you cannot do this — they are a normal part of learning something difficult. Do 30 minutes anyway. Close the book. Come back tomorrow. Progress is invisible until suddenly it is not." },
+  { tag:"ON THE GOAL", color:"var(--red)", text:"Law at UFS. Picture what that first acceptance letter looks like. Picture telling your family. Picture walking onto that campus in 2027 as a registered student who earned it the hard way. That image is your fuel on the mornings the alarm goes off at 05:00 and everything in you wants to stay in bed. The goal does not move. Only you do." },
+  { tag:"ON AI VIDEO WORK", color:"var(--blue)", text:"The AI video sessions are not just a side project — they are you building a second skill while you study. Every hour you spend learning AI video creation is an hour invested in a capability that will still be valuable long after the exams are done. You are not just building toward a Law degree. You are building toward a version of yourself that creates, earns, and leads. Use those evening sessions well." }
+];
+
+const PRE_JOG = [
+  { num:"1", name:"Leg Swings", target:"HIPS · GROIN · HIP FLEXORS", desc:"Stand sideways next to a wall for balance. Swing one leg forward and back in a controlled arc, gradually increasing the range. Then swing side to side across the body. Loosens hip flexors and groin dynamically.", timing:"15 swings each direction · each leg", msg:"Leg swings. Forward and back, then side to side. Loosen those hips before you run." },
+  { num:"2", name:"Walking Lunges with Twist", target:"GROIN · HIPS · THORACIC SPINE", desc:"Step forward into a lunge and rotate your torso toward the front knee. Alternate legs as you walk forward. Activates hip flexors, groin and spine all at once.", timing:"10 each leg · 2 sets", msg:"Walking lunges with a twist. Step and rotate. Wake up the whole body." },
+  { num:"3", name:"Hip Circles", target:"HIP JOINT · GLUTES · LOWER BACK", desc:"Stand with feet shoulder-width apart, hands on hips. Make large slow circles with your hips — 10 clockwise, 10 anti-clockwise. Lubricates the hip joint before impact.", timing:"10 each direction · 2 rounds", msg:"Hip circles. Slow and controlled. Lubricate that joint before the road." },
+  { num:"4", name:"Calf Raises + Ankle Rolls", target:"CALVES · ANKLES · ACHILLES", desc:"Rise up slowly on your toes, hold for a second, lower. Then roll each ankle in circles. Prevents shin splints and ankle sprains on morning runs.", timing:"15 raises · 10 ankle circles each foot", msg:"Calf raises and ankle rolls. Protect those ankles before you hit the road." }
+];
+
+const LOWER_STRETCHES = [
+  { num:"1", name:"Butterfly Stretch", target:"GROIN · INNER THIGH", color:"var(--gold)", desc:"Sit on the floor, bring the soles of your feet together, let your knees fall out to the sides. Hold your feet and gently press your knees toward the floor with your elbows. Sit tall, do not round your back.", timing:"Hold 45–60 sec · 2 rounds", msg:"Butterfly stretch. Sit tall, press the knees down gently. Feel that groin open up." },
+  { num:"2", name:"Deep Lunge Hip Flexor", target:"HIP FLEXOR · GROIN · QUAD", color:"var(--blue)", desc:"Step one foot forward into a deep lunge, back knee on the floor. Sink your hips low and forward. Keep your chest tall. You should feel a deep stretch in the front of the back hip. Switch sides.", timing:"Hold 40 sec each side · 2 rounds", msg:"Deep lunge hip flexor stretch. Sink those hips forward. Switch sides after 40 seconds." },
+  { num:"3", name:"Wide-Leg Seated Stretch", target:"INNER GROIN · HAMSTRINGS", color:"var(--purple)", desc:"Sit on the floor with legs spread wide apart. Slowly walk your hands forward between your legs, lowering your chest toward the ground. Breathe out and let gravity do the work.", timing:"Hold 45–60 sec · 2 rounds", msg:"Wide-leg seated stretch. Walk your hands forward slowly. Breathe out and let your body open." },
+  { num:"4", name:"Pigeon Pose", target:"GLUTES · HIP ROTATORS · IT BAND", color:"var(--green)", desc:"From a plank position, bring one knee forward toward your same-side wrist, shin angled across your body. Sink your hips down and forward. Rest on your forearms or chest if you can. Breathe through it.", timing:"Hold 45 sec each side · 2 rounds", msg:"Pigeon pose. Breathe through it. This is the deepest hip stretch you will do. Hold for 45 seconds." },
+  { num:"5", name:"Standing Groin Side Stretch", target:"ADDUCTORS · LATERAL GROIN", color:"var(--orange)", desc:"Stand with feet wide apart. Shift your weight to one side, bending that knee while keeping the other leg straight. The straight leg's inner thigh should feel the stretch. Keep both feet flat.", timing:"Hold 30 sec each side · 2–3 rounds", msg:"Standing groin side stretch. Shift your weight to one side, keep the other leg straight. Feel the inner thigh." },
+  { num:"6", name:"Supine Knee Hug + Twist", target:"LOWER BACK · GLUTES · SPINE", color:"var(--red)", desc:"Lie on your back. Pull both knees to your chest and hug them. Then let both knees fall to one side while your arms stay out wide — hold, then switch. Finish by lying flat and breathing for 60 seconds.", timing:"Hold 30 sec each side · finish with 60 sec rest", msg:"Supine knee hug and spinal twist. Lie back, pull the knees in, then let them fall to the side. Close your eyes and breathe." }
+];
+
+const UPPER_STRETCHES = [
+  { num:"7", name:"Cross-Body Shoulder Stretch", target:"SHOULDER · ROTATOR CUFF", color:"var(--gold)", desc:"Bring one arm straight across your chest. Use your other arm to gently pull it closer to your body. You should feel a deep stretch in the back of the shoulder. Critical for hockey players who swing and hit repeatedly.", timing:"Hold 30 sec each side · 2 rounds", msg:"Cross-body shoulder stretch. Pull that arm across your chest. Feel the back of the shoulder release." },
+  { num:"8", name:"Doorway Chest Opener", target:"CHEST · FRONT SHOULDERS · PECS", color:"var(--blue)", desc:"Stand in a doorway, place both forearms on the frame at 90 degrees. Step one foot forward and gently lean through the door until you feel a stretch across your chest and front shoulders. Hockey's bent posture tightens the chest badly — this counteracts it.", timing:"Hold 30–45 sec · 2–3 rounds", msg:"Doorway chest opener. Lean through and let the chest open up. This undoes hours of bent-over hockey posture." },
+  { num:"9", name:"Thoracic Spine Rotation", target:"UPPER BACK · SPINE · POSTURE", color:"var(--purple)", desc:"Sit on the floor with knees bent, hands behind your head. Slowly rotate your upper body to one side as far as comfortable, hold briefly, return and rotate the other way. Decompresses the thoracic spine compressed by hockey posture.", timing:"10 reps each side · 2 rounds", msg:"Thoracic spine rotation. Hands behind your head, rotate slowly side to side. Undo that forward lean." },
+  { num:"10", name:"Wrist & Forearm Stretch", target:"WRISTS · FOREARMS · GRIP", color:"var(--green)", desc:"Extend one arm in front, palm facing out. Use your other hand to gently pull your fingers back toward you. Then flip — palm facing down, fingers pointing down, pull back. Prevents tendon issues from stick handling.", timing:"Hold 20 sec each direction · each wrist · 2 rounds", msg:"Wrist and forearm stretch. Extend the arm and pull the fingers back. Both directions, both wrists." },
+  { num:"11", name:"Cat-Cow Stretch", target:"SPINE · LOWER BACK · NECK", color:"var(--orange)", desc:"On all fours, alternate between arching your back up toward the ceiling and dipping it down while lifting your head. Slow and controlled. Decompresses the whole spine after a day of study and sport.", timing:"10 slow reps · 3 rounds", msg:"Cat-cow. Arch up slowly, then dip down. Let the whole spine breathe. Ten slow reps." },
+  { num:"12", name:"Neck Rolls & Trap Release", target:"NECK · TRAPS · UPPER SHOULDERS", color:"var(--red)", desc:"Slowly drop your ear to your shoulder and hold. Then roll your chin to your chest, across to the other side, and back. Finish by gently squeezing and rolling your traps with your opposite hand. Releases tension from looking down at the ball all game.", timing:"Hold each side 20–30 sec · slow full roll × 5", msg:"Neck rolls and trap release. Drop the ear to the shoulder, hold, then slowly roll across. Squeeze those traps out." }
+];
+
+const DEFAULT_SCHEDULE = {
+  0:[
+    {id:'s0_1',time:'09:00',endTime:'11:30',label:'⛪ Church',type:'b-church',alarm:true,alarmMsg:'Church time. Go with a grateful heart.'},
+    {id:'s0_2',time:'12:30',endTime:'13:30',label:'🏠 Help around the house + lunch',type:'b-rest',alarm:true,alarmMsg:'Home. Help out and eat a proper meal.'},
+    {id:'s0_3',time:'13:30',endTime:'14:00',label:'🧘 Light stretching only — no training',type:'b-stretch',alarm:true,alarmMsg:'Sunday stretch. Light and easy. No training today. Just breathe and move.'},
+    {id:'s0_4',time:'14:00',endTime:'16:00',label:'📐 MATHS — Light revision',type:'b-maths',alarm:true,alarmMsg:'Light Maths revision. Keep the brain warm. No pressure — just review.'},
+    {id:'s0_5',time:'16:00',endTime:'17:00',label:'📝 Plan the week ahead',type:'b-rest',alarm:true,alarmMsg:'Plan your week. Write down exactly which topics you will cover each day. Be specific.'},
+    {id:'s0_6',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Nightly stretch routine. Groin, hips, upper body. All 12 stretches. 15 minutes.'}
+  ],
+  1:[
+    {id:'m1_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Get up. It is 5AM and you are already ahead of everyone still sleeping. Water first, then move.'},
+    {id:'m1_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Pre-jog stretch. 20 minutes. Warm up the hips and groin before you hit the road.'},
+    {id:'m1_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Time to run. One hour. No excuses. Your mind will clear and your body will wake up. Go.'},
+    {id:'m1_3',time:'07:00',endTime:'08:10',label:'🚗 Bro to school + Mom to work',type:'b-transport',alarm:true,alarmMsg:'Transport run. Brother to school, Mom to work.'},
+    {id:'m1_4',time:'08:30',endTime:'10:30',label:'📐 MATHS — Library',type:'b-maths',alarm:true,alarmMsg:'Library time. Maths first. Brain is fresh. This is your most important session of the day.'},
+    {id:'m1_5',time:'10:45',endTime:'12:30',label:'📐 MATHS continued — Library',type:'b-maths',alarm:true,alarmMsg:'Stay in it. Maths second session. Push through.'},
+    {id:'m1_6',time:'13:00',endTime:'14:30',label:'👦 Aftercare',type:'b-aftercare',alarm:true,alarmMsg:'Aftercare time.'},
+    {id:'m1_7',time:'16:45',endTime:'',label:'🚗 Pick up Mom',type:'b-transport',alarm:true,alarmMsg:'Pick up Mom.'},
+    {id:'m1_8',time:'17:00',endTime:'18:30',label:'📊 BUSINESS — Home',type:'b-biz',alarm:true,alarmMsg:'Business Studies. Home session. Lock in, no phone.'},
+    {id:'m1_9',time:'18:30',endTime:'19:30',label:'🏃 Personal Training',type:'b-training',alarm:true,alarmMsg:'Training time. Gym, run, or hockey skills. Get the body moving.'},
+    {id:'m1_10',time:'19:45',endTime:'21:15',label:'🎬 AI Video Work — Laptop',type:'b-video',alarm:true,alarmMsg:'AI video session. Laptop out. One hour of learning and creating. This is your second income skill.'},
+    {id:'m1_11',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Nightly stretch. All 12 stretches. Groin and upper body. Your body worked hard today.'}
+  ],
+  2:[
+    {id:'t2_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Tuesday. Training tonight. Use that as fuel this morning. Get up.'},
+    {id:'t2_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Pre-jog stretch. 20 minutes. Warm up before the road.'},
+    {id:'t2_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Run. One hour. Go.'},
+    {id:'t2_3',time:'07:00',endTime:'08:10',label:'🚗 Bro to school + Mom to work',type:'b-transport',alarm:true,alarmMsg:'Transport run.'},
+    {id:'t2_4',time:'08:30',endTime:'10:30',label:'📐 MATHS — Library',type:'b-maths',alarm:true,alarmMsg:'Library. Maths. Go in with a specific topic in mind. Do not just open the book and stare.'},
+    {id:'t2_5',time:'10:45',endTime:'12:30',label:'📈 ECONOMICS — Library',type:'b-econ',alarm:true,alarmMsg:'Switch to Economics. Keep the momentum going.'},
+    {id:'t2_6',time:'13:00',endTime:'14:30',label:'👦 Aftercare',type:'b-aftercare',alarm:true,alarmMsg:'Aftercare.'},
+    {id:'t2_7',time:'16:45',endTime:'',label:'🚗 Pick up Mom',type:'b-transport',alarm:true,alarmMsg:'Pick up Mom.'},
+    {id:'t2_8',time:'17:30',endTime:'19:00',label:'🏑 Hockey Training — Cut Club',type:'b-training',alarm:true,alarmMsg:'Cut Club training. Leave everything on that field.'},
+    {id:'t2_9',time:'19:15',endTime:'20:45',label:'🎬 AI Video Work — Laptop',type:'b-video',alarm:true,alarmMsg:'AI video session after training. Sit down, open the laptop. One hour of building your skill.'},
+    {id:'t2_10',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Post-training stretch. Non-negotiable tonight. Groin and shoulders worked hard.'}
+  ],
+  3:[
+    {id:'w3_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Wednesday. Halfway through the week. You have been consistent. Keep it going.'},
+    {id:'w3_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Morning stretch. Wake the body up before the jog.'},
+    {id:'w3_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Jog. One hour. Go.'},
+    {id:'w3_3',time:'07:00',endTime:'08:10',label:'🚗 Bro to school + Mom to work',type:'b-transport',alarm:true,alarmMsg:'Transport run.'},
+    {id:'w3_4',time:'08:30',endTime:'10:30',label:'📐 MATHS — Library',type:'b-maths',alarm:true,alarmMsg:'Maths at the library. First thing every time.'},
+    {id:'w3_5',time:'10:45',endTime:'12:30',label:'📊 BUSINESS — Library',type:'b-biz',alarm:true,alarmMsg:'Business Studies. You are aiming for Level 7. Treat it like it.'},
+    {id:'w3_6',time:'13:00',endTime:'14:30',label:'👦 Aftercare',type:'b-aftercare',alarm:true,alarmMsg:'Aftercare.'},
+    {id:'w3_7',time:'16:45',endTime:'',label:'🚗 Pick up Mom',type:'b-transport',alarm:true,alarmMsg:'Pick up Mom.'},
+    {id:'w3_8',time:'17:00',endTime:'18:30',label:'📈 ECONOMICS — Home',type:'b-econ',alarm:true,alarmMsg:'Economics at home. One and a half hours. Push through even if you are tired.'},
+    {id:'w3_9',time:'18:30',endTime:'19:30',label:'🏃 Personal Training',type:'b-training',alarm:true,alarmMsg:'Personal training. Gym, run or hockey drills.'},
+    {id:'w3_10',time:'19:45',endTime:'21:15',label:'🎬 AI Video Work — Laptop',type:'b-video',alarm:true,alarmMsg:'AI video session. Laptop out. Build that skill.'},
+    {id:'w3_11',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Stretch time. All 12. Do not skip the upper body ones.'}
+  ],
+  4:[
+    {id:'t4_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Thursday. Training tonight. Grandma this morning. Tight day — make every hour count.'},
+    {id:'t4_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Pre-jog stretch. 20 minutes.'},
+    {id:'t4_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Jog. Go.'},
+    {id:'t4_3',time:'07:00',endTime:'08:10',label:'🚗 Bro to school + Mom to work',type:'b-transport',alarm:true,alarmMsg:'Transport run.'},
+    {id:'t4_4',time:'08:30',endTime:'10:00',label:'📐 MATHS — Home (short session)',type:'b-maths',alarm:true,alarmMsg:'Short Maths session before the Grandma run. 90 minutes. Make it count.'},
+    {id:'t4_5',time:'10:20',endTime:'13:00',label:'👵 Pick up Grandma — Hair appointment',type:'b-grandma',alarm:true,alarmMsg:'Leave now. Pick up Grandma at 10:20, hair appointment at 11:00. Drop her back after.'},
+    {id:'t4_6',time:'13:00',endTime:'14:30',label:'👦 Aftercare',type:'b-aftercare',alarm:true,alarmMsg:'Aftercare.'},
+    {id:'t4_7',time:'16:45',endTime:'',label:'🚗 Pick up Mom',type:'b-transport',alarm:true,alarmMsg:'Pick up Mom.'},
+    {id:'t4_8',time:'17:30',endTime:'19:00',label:'🏑 Hockey Training — Cut Club',type:'b-training',alarm:true,alarmMsg:'Cut Club. Train hard.'},
+    {id:'t4_9',time:'19:15',endTime:'20:45',label:'🎬 AI Video Work — Laptop',type:'b-video',alarm:true,alarmMsg:'AI video session. Even after training. Sit down and build.'},
+    {id:'t4_10',time:'21:00',endTime:'21:30',label:'📝 Light review / flashcards',type:'b-maths',alarm:true,alarmMsg:'Light review. Flashcards or notes only. Nothing heavy after training.'},
+    {id:'t4_11',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Post-training stretch. Do not skip the groin and shoulder work tonight.'}
+  ],
+  5:[
+    {id:'f5_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Friday. Game day. Big study morning first. Let\'s go.'},
+    {id:'f5_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Pre-jog stretch. 20 minutes.'},
+    {id:'f5_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Friday jog. Go.'},
+    {id:'f5_3',time:'07:00',endTime:'08:10',label:'🚗 Bro to school + Mom to work',type:'b-transport',alarm:true,alarmMsg:'Transport run.'},
+    {id:'f5_4',time:'08:30',endTime:'10:30',label:'📐 MATHS — Library',type:'b-maths',alarm:true,alarmMsg:'Maths at the library. Friday morning session. Fresh brain — use it.'},
+    {id:'f5_5',time:'10:45',endTime:'12:30',label:'📊 BUSINESS — Library',type:'b-biz',alarm:true,alarmMsg:'Business Studies. Keep going.'},
+    {id:'f5_6',time:'13:00',endTime:'14:30',label:'👦 Aftercare',type:'b-aftercare',alarm:true,alarmMsg:'Aftercare. If not going today — head to the library for Economics instead.'},
+    {id:'f5_6b',time:'13:00',endTime:'14:30',label:'📈 ECONOMICS — Library (if no aftercare)',type:'b-econ',alarm:false,alarmMsg:''},
+    {id:'f5_6c',time:'14:45',endTime:'16:30',label:'📐 MATHS past papers (if no aftercare)',type:'b-maths',alarm:false,alarmMsg:''},
+    {id:'f5_7',time:'16:45',endTime:'',label:'🚗 Pick up Mom',type:'b-transport',alarm:true,alarmMsg:'Pick up Mom.'},
+    {id:'f5_8',time:'17:00',endTime:'21:00',label:'🏆 League Game — Cut Club',type:'b-game',alarm:true,alarmMsg:'Game time. Meet the team one hour before. Play hard. You have earned this.'},
+    {id:'f5_9',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Post-game stretch. Essential tonight. All of them.'}
+  ],
+  6:[
+    {id:'s6_0',time:'05:00',endTime:'',label:'⏰ Wake Up — water · get ready',type:'b-rest',alarm:true,alarmMsg:'Saturday. Your biggest study day of the week. No aftercare, no transport. Just you and the work.'},
+    {id:'s6_1',time:'05:15',endTime:'05:35',label:'🧘 Pre-Jog Morning Stretch',type:'b-stretch',alarm:true,alarmMsg:'Pre-jog stretch. Start Saturday right.'},
+    {id:'s6_2',time:'05:35',endTime:'06:35',label:'🏃 Morning Jog — 1 hour',type:'b-jog',alarm:true,alarmMsg:'Saturday jog. Clear the head before the big study day.'},
+    {id:'s6_3',time:'08:00',endTime:'10:30',label:'📐 MATHS — Past paper (timed)',type:'b-maths',alarm:true,alarmMsg:'Maths past paper. Timed. Treat it like the real exam. No peeking until you are done.'},
+    {id:'s6_4',time:'10:30',endTime:'11:00',label:'☕ Break',type:'b-rest',alarm:true,alarmMsg:'Break. Eat something, get water, step outside for 10 minutes. Then back in.'},
+    {id:'s6_5',time:'11:00',endTime:'13:00',label:'📊 BUSINESS — Deep study',type:'b-biz',alarm:true,alarmMsg:'Business deep study. Two hours. Attack the hardest topic you have been avoiding.'},
+    {id:'s6_6',time:'13:00',endTime:'14:00',label:'🍽 Lunch break',type:'b-rest',alarm:true,alarmMsg:'Lunch. Eat a proper meal. You need fuel for the afternoon.'},
+    {id:'s6_7',time:'14:00',endTime:'16:00',label:'📈 ECONOMICS — Deep study',type:'b-econ',alarm:true,alarmMsg:'Economics. Two hours. You are aiming for Level 6. Every session gets you closer.'},
+    {id:'s6_8',time:'16:00',endTime:'17:00',label:'📝 Weekly review + plan next week',type:'b-rest',alarm:true,alarmMsg:'Weekly review. What did you cover? What gaps remain? Plan next week specifically.'},
+    {id:'s6_9',time:'17:00',endTime:'18:00',label:'🏃 Personal Training',type:'b-training',alarm:true,alarmMsg:'Training session. Gym, run, or hockey skills work. You have earned it.'},
+    {id:'s6_10',time:'18:00',endTime:'20:00',label:'🎬 AI Video Work — Laptop',type:'b-video',alarm:true,alarmMsg:'Saturday AI video session. Two hours. Your biggest session of the week for this skill.'},
+    {id:'s6_11',time:'20:30',endTime:'',label:'🎉 Free time — you earned it',type:'b-rest',alarm:false,alarmMsg:''},
+    {id:'s6_12',time:'21:30',endTime:'',label:'🌙 Nightly mobility stretches',type:'b-stretch',alarm:true,alarmMsg:'Nightly stretch. 15 to 20 minutes. All 12. Sleep well — you worked hard today.'}
+  ]
+};
+
+const DEFAULT_APS = { maths:41, biz:53, econ:41, acc:48 };
+
+// ═══════════════════ STATE ═══════════════════
+let schedule = JSON.parse(localStorage.getItem('zeezo_schedule') || 'null') || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+let settings = JSON.parse(localStorage.getItem('zeezo_settings') || '{}');
+let aps = JSON.parse(localStorage.getItem('zeezo_aps') || 'null') || {...DEFAULT_APS};
+let quoteIdx = parseInt(localStorage.getItem('zeezo_quote') || '0');
+let editingDay = null, editingId = null, selectedWeekDay = new Date().getDay();
+let alarmTimers = [], deferredInstall = null;
+
+function save() {
+  localStorage.setItem('zeezo_schedule', JSON.stringify(schedule));
+  localStorage.setItem('zeezo_settings', JSON.stringify(settings));
+  localStorage.setItem('zeezo_aps', JSON.stringify(aps));
+  localStorage.setItem('zeezo_quote', quoteIdx);
+}
+
+// ═══════════════════ UTILS ═══════════════════
+function t2m(t){ if(!t) return 0; const[h,m]=t.split(':').map(Number); return h*60+m; }
+function nowM(){ const n=new Date(); return n.getHours()*60+n.getMinutes(); }
+function fmt(t){ if(!t) return ''; const[h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; return `${h%12||12}:${m.toString().padStart(2,'0')} ${ap}`; }
+function dayName(i){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][i]; }
+function dayShort(i){ return ['SUN','MON','TUE','WED','THU','FRI','SAT'][i]; }
+function getCurrentDay(){ return new Date().getDay(); }
+function pctToLevel(p){ if(p>=80) return 7; if(p>=70) return 6; if(p>=60) return 5; if(p>=50) return 4; if(p>=40) return 3; if(p>=30) return 2; return 1; }
+function pctToAps(p){ return pctToLevel(p); }
+function calcTotalAps(){
+  // simplified: sum levels of 6 subjects — using 4 rewrite subjects + assume 2 others at level 4
+  return pctToAps(aps.maths) + pctToAps(aps.biz) + pctToAps(aps.econ) + pctToAps(aps.acc) + 8; // 8 = 2 other subjects at level 4
+}
+function getPhase(){
+  const now = new Date();
+  const may20 = new Date(2026,4,20);
+  const weeks = Math.floor((now - may20) / (7*24*60*60*1000));
+  if(weeks < 0) return 'PHASE 1 — FOUNDATION';
+  if(weeks < 8) return 'PHASE 1 — FOUNDATION';
+  if(weeks < 15) return 'PHASE 2 — BUILD DEPTH';
+  if(weeks < 19) return 'PHASE 3 — EXAM PREP';
+  return 'PHASE 4 — FINAL PUSH';
+}
+
+// ═══════════════════ CLOCK ═══════════════════
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clockEl').textContent=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}:${n.getSeconds().toString().padStart(2,'0')}`;
+}
+setInterval(updateClock,1000); updateClock();
+
+// ═══════════════════ APS ═══════════════════
+function renderAps(){
+  const subjects=[
+    {key:'maths',label:'Maths',color:'var(--gold)',target:70},
+    {key:'biz',label:'Business',color:'var(--blue)',target:80},
+    {key:'econ',label:'Economics',color:'var(--purple)',target:70},
+    {key:'acc',label:'Accounting',color:'var(--muted)',target:60}
+  ];
+  const container = document.getElementById('apsRows');
+  if(!container) return;
+  container.innerHTML = subjects.map(s=>{
+    const pct = aps[s.key]||0;
+    const level = pctToLevel(pct);
+    const color = pct >= s.target ? 'var(--green)' : s.color;
+    return `<div class="aps-row">
+      <div class="aps-subj">${s.label}</div>
+      <div class="aps-bar-wrap"><div class="aps-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="aps-pct" style="color:${color}">${pct}% L${level}</div>
+    </div>`;
+  }).join('');
+  const total = calcTotalAps();
+  const totalEl = document.getElementById('apsTotalVal');
+  if(totalEl){ totalEl.textContent = total; totalEl.style.color = total >= 34 ? 'var(--green)' : total >= 30 ? 'var(--orange)' : 'var(--red)'; }
+}
+
+function openApsModal(){
+  document.getElementById('apsMaths').value = aps.maths||'';
+  document.getElementById('apsBiz').value = aps.biz||'';
+  document.getElementById('apsEcon').value = aps.econ||'';
+  document.getElementById('apsAcc').value = aps.acc||'';
+  document.getElementById('apsModal').classList.add('open');
+}
+function saveAps(){
+  aps.maths = parseInt(document.getElementById('apsMaths').value)||0;
+  aps.biz = parseInt(document.getElementById('apsBiz').value)||0;
+  aps.econ = parseInt(document.getElementById('apsEcon').value)||0;
+  aps.acc = parseInt(document.getElementById('apsAcc').value)||0;
+  save(); renderAps(); closeModal('apsModal');
+  showToast('Marks updated ✓');
+}
+
+// ═══════════════════ MOTIVATION ═══════════════════
+function renderMotivation(){
+  const el = document.getElementById('motivText');
+  if(el) el.textContent = QUOTES[quoteIdx % QUOTES.length];
+}
+function nextQuote(){ quoteIdx = (quoteIdx+1)%QUOTES.length; save(); renderMotivation(); }
+function speakMotivation(){ speakText(QUOTES[quoteIdx%QUOTES.length]); }
+
+function renderDeepMotivation(){
+  const c = document.getElementById('deepMotivCards');
+  if(!c) return;
+  c.innerHTML = DEEP_MOTIVATIONS.map(d=>`
+    <div class="deep-card" style="border-left-color:${d.color}">
+      <div class="deep-tag" style="color:${d.color}">${d.tag}</div>
+      <div class="deep-text">${d.text}</div>
+      <button class="speak-btn" style="margin-top:12px;background:${d.color};color:#000;" onclick="speakText(\`${d.text.replace(/`/g,"'")}\`)">▶ Speak</button>
+    </div>`).join('');
+}
+
+// ═══════════════════ STRETCHES ═══════════════════
+function renderStretches(){
+  renderStretchList('preJogStretches', PRE_JOG, 'var(--green)');
+  renderStretchList('lowerStretches', LOWER_STRETCHES, 'var(--gold)');
+  renderStretchList('upperStretches', UPPER_STRETCHES, 'var(--blue)');
+}
+function renderStretchList(containerId, arr, color){
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML = arr.map(s=>`
+    <div class="stretch-card">
+      <div class="stretch-num" style="color:${color}">STRETCH ${s.num}</div>
+      <div class="stretch-name">${s.name}</div>
+      <div class="stretch-target" style="color:${color}">${s.target}</div>
+      <div class="stretch-desc">${s.desc}</div>
+      <div class="stretch-timing">${s.timing}</div>
+      <button class="speak-stretch-btn" onclick="speakText(\`${s.msg.replace(/`/g,"'")}\`)">▶ Speak Instructions</button>
+    </div>`).join('');
+}
+
+// ═══════════════════ BLOCKS RENDERING ═══════════════════
+function renderBlocks(dayIdx, containerId, showPast=true){
+  const blocks = (schedule[dayIdx]||[]).slice().sort((a,b)=>t2m(a.time)-t2m(b.time));
+  const now = nowM();
+  const c = document.getElementById(containerId);
+  if(!c) return;
+  c.innerHTML = '';
+  blocks.forEach(b=>{
+    const bm = t2m(b.time);
+    const em = b.endTime ? t2m(b.endTime) : bm+60;
+    const isPast = em < now;
+    const isCurrent = bm<=now && em>now;
+    const isOptional = b.id && (b.id.endsWith('b') || b.id.endsWith('c'));
+    const div = document.createElement('div');
+    div.className = `block-card ${b.type}${isPast&&showPast?' past':''}${isCurrent?' current':''}${isOptional?' optional-block':''}`;
+    div.innerHTML = `<div class="bdot"></div><div class="binfo"><div class="btime">${fmt(b.time)}${b.endTime?' — '+fmt(b.endTime):''}</div><div class="blabel">${b.label}</div></div><div class="balarm">${b.alarm?'🔔':'🔕'}</div>`;
+    div.onclick = ()=>openEditModal(dayIdx, b.id);
+    c.appendChild(div);
+  });
+}
+
+function renderToday(){
+  const today = new Date();
+  const di = today.getDay();
+  const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('todayDay').textContent = dayName(di).toUpperCase();
+  document.getElementById('todayDate').textContent = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+  document.getElementById('phasePill').textContent = getPhase();
+  document.getElementById('todayDayHdr').textContent = `${dayName(di).toUpperCase()}'S SCHEDULE`;
+  const blocks = (schedule[di]||[]).slice().sort((a,b)=>t2m(a.time)-t2m(b.time));
+  const now = nowM();
+  const next = blocks.find(b=>t2m(b.time)>now);
+  if(next){
+    document.getElementById('nextBlock').textContent = next.label;
+    document.getElementById('nextTime').textContent = fmt(next.time)+(next.endTime?' → '+fmt(next.endTime):'');
+  } else {
+    document.getElementById('nextBlock').textContent = 'All done for today 🎉';
+    document.getElementById('nextTime').textContent = 'Rest well. Big day tomorrow.';
+  }
+  renderBlocks(di,'todayBlocks',true);
+  renderAps();
+  renderMotivation();
+}
+
+function renderWeekView(){
+  const tabs = document.getElementById('weekTabs');
+  tabs.innerHTML='';
+  for(let i=0;i<7;i++){
+    const t=document.createElement('div');
+    t.className='wtab'+(i===selectedWeekDay?' active':'');
+    t.innerHTML=`<div class="wd">${dayShort(i)}</div>`;
+    t.onclick=()=>{selectedWeekDay=i;renderWeekView();};
+    tabs.appendChild(t);
+  }
+  document.getElementById('weekDayHdr').textContent = dayName(selectedWeekDay).toUpperCase();
+  document.getElementById('weekAddBtn').onclick = ()=>openAddModal(selectedWeekDay);
+  renderBlocks(selectedWeekDay,'weekBlocks',false);
+}
+
+function renderFullWeek(){
+  const c = document.getElementById('fullWeekContainer');
+  if(!c) return;
+  c.innerHTML='';
+  for(let i=0;i<7;i++){
+    const blocks = (schedule[i]||[]).slice().sort((a,b)=>t2m(a.time)-t2m(b.time));
+    const div=document.createElement('div');
+    div.className='fullweek-day';
+    div.innerHTML=`<div class="fullweek-hdr"><div class="fullweek-dayname">${dayName(i).toUpperCase()}</div><div class="fullweek-count">${blocks.length} blocks</div></div><div class="fullweek-blocks" id="fw_${i}"></div>`;
+    c.appendChild(div);
+    renderBlocks(i,`fw_${i}`,false);
+  }
+}
+
+// ═══════════════════ VOICE ═══════════════════
+async function speakText(text){
+  if(!settings.apiKey||!settings.voiceId){
+    if('speechSynthesis' in window){
+      window.speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=0.92;u.pitch=0.85;
+      window.speechSynthesis.speak(u);
+    }
+    return;
+  }
+  const btn=document.getElementById('speakBtn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span>⏳</span> Loading...';}
+  try{
+    const res=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${settings.voiceId}`,{
+      method:'POST',
+      headers:{'xi-api-key':settings.apiKey,'Content-Type':'application/json'},
+      body:JSON.stringify({text,model_id:'eleven_monolingual_v1',voice_settings:{stability:0.4,similarity_boost:0.85,style:0.3,use_speaker_boost:true}})
+    });
+    if(!res.ok) throw new Error('API error');
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const audio=new Audio(url);
+    audio.play();
+    audio.onended=()=>URL.revokeObjectURL(url);
+  }catch(e){
+    showToast('Voice error — using built-in TTS');
+    if('speechSynthesis' in window){
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=0.92;u.pitch=0.85;
+      window.speechSynthesis.speak(u);
+    }
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<span>▶</span> Speak It';}
+  }
+}
+
+// ═══════════════════ ALARMS ═══════════════════
+function scheduleAlarms(){
+  alarmTimers.forEach(clearTimeout); alarmTimers=[];
+  const di=getCurrentDay();
+  (schedule[di]||[]).filter(b=>b.alarm).forEach(b=>{
+    const[h,m]=b.time.split(':').map(Number);
+    const at=new Date(); at.setHours(h,m,0,0);
+    const diff=at-new Date();
+    if(diff>0&&diff<86400000){
+      alarmTimers.push(setTimeout(()=>fireAlarm(b),diff));
+    }
+  });
+  document.getElementById('alarmDot').className='alarm-dot'+(alarmTimers.length>0?'':' off');
+  document.getElementById('alarmTxt').textContent=alarmTimers.length>0?`${alarmTimers.length} ALARMS SET`:'NO ALARMS TODAY';
+}
+
+function fireAlarm(b){
+  if(Notification.permission==='granted'&&navigator.serviceWorker.controller){
+    navigator.serviceWorker.controller.postMessage({type:'SCHEDULE_ALARM',title:b.label,body:b.alarmMsg||'Time for your next block.',tag:b.id});
+  }
+  speakText(b.alarmMsg||b.label);
+  showToast('🔔 '+b.label);
+}
+
+async function requestNotifPerm(){
+  const p=await Notification.requestPermission();
+  const el=document.getElementById('notifStatus');
+  if(p==='granted'){el.textContent='✓ Notifications enabled!';el.className='set-status';scheduleAlarms();}
+  else{el.textContent='✗ Denied. Go to browser settings to enable.';el.className='set-status err';}
+}
+
+function testAlarm(){
+  fireAlarm({id:'test',label:'🔔 Test Alarm',alarmMsg:'Test alarm working. Your alarms are set up correctly. Now let\'s get to work.',alarm:true});
+}
+
+// ═══════════════════ MODAL ═══════════════════
+function openEditModal(dayIdx,blockId){
+  editingDay=dayIdx; editingId=blockId;
+  const b=(schedule[dayIdx]||[]).find(x=>x.id===blockId);
+  if(!b) return;
+  document.getElementById('blockModalTitle').textContent='Edit Block';
+  document.getElementById('editLabel').value=b.label;
+  document.getElementById('editStart').value=b.time;
+  document.getElementById('editEnd').value=b.endTime||'';
+  document.getElementById('editType').value=b.type;
+  document.getElementById('editAlarm').value=b.alarm?'1':'0';
+  document.getElementById('editAlarmMsg').value=b.alarmMsg||'';
+  document.getElementById('deleteBtn').style.display='block';
+  document.getElementById('blockModal').classList.add('open');
+}
+
+function openAddModal(dayIdx){
+  editingDay=dayIdx; editingId=null;
+  document.getElementById('blockModalTitle').textContent='Add Block — '+dayName(dayIdx);
+  document.getElementById('editLabel').value='';
+  document.getElementById('editStart').value='';
+  document.getElementById('editEnd').value='';
+  document.getElementById('editType').value='b-maths';
+  document.getElementById('editAlarm').value='1';
+  document.getElementById('editAlarmMsg').value='';
+  document.getElementById('deleteBtn').style.display='none';
+  document.getElementById('blockModal').classList.add('open');
+}
+
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+function saveBlock(){
+  const label=document.getElementById('editLabel').value.trim();
+  const start=document.getElementById('editStart').value;
+  const end=document.getElementById('editEnd').value;
+  const type=document.getElementById('editType').value;
+  const alarm=document.getElementById('editAlarm').value==='1';
+  const alarmMsg=document.getElementById('editAlarmMsg').value.trim();
+  if(!label||!start){showToast('Please enter label and start time');return;}
+  if(!schedule[editingDay]) schedule[editingDay]=[];
+  if(editingId){
+    const idx=schedule[editingDay].findIndex(b=>b.id===editingId);
+    if(idx>-1) schedule[editingDay][idx]={...schedule[editingDay][idx],label,time:start,endTime:end,type,alarm,alarmMsg};
+  } else {
+    schedule[editingDay].push({id:`c_${Date.now()}`,time:start,endTime:end,label,type,alarm,alarmMsg});
+  }
+  save(); closeModal('blockModal'); scheduleAlarms(); refreshCurrentPage(); showToast('Saved ✓');
+}
+
+function deleteBlock(){
+  if(!editingId||editingDay===null) return;
+  schedule[editingDay]=schedule[editingDay].filter(b=>b.id!==editingId);
+  save(); closeModal('blockModal'); scheduleAlarms(); refreshCurrentPage(); showToast('Deleted');
+}
+
+function refreshCurrentPage(){
+  const active=document.querySelector('.page.active');
+  if(!active) return;
+  const id=active.id;
+  if(id==='page-today') renderToday();
+  else if(id==='page-week') renderWeekView();
+  else if(id==='page-fullweek') renderFullWeek();
+}
+
+// ═══════════════════ SETTINGS ═══════════════════
+function loadSettings(){
+  document.getElementById('apiKeyInput').value=settings.apiKey||'';
+  document.getElementById('voiceIdInput').value=settings.voiceId||'';
+  if(Notification.permission==='granted') document.getElementById('notifStatus').textContent='✓ Notifications enabled';
+}
+function saveVoiceSettings(){
+  settings.apiKey=document.getElementById('apiKeyInput').value.trim();
+  settings.voiceId=document.getElementById('voiceIdInput').value.trim();
+  save();
+  document.getElementById('voiceStatus').textContent='✓ Saved!';
+  setTimeout(()=>document.getElementById('voiceStatus').textContent='',2000);
+}
+async function testVoice(){
+  document.getElementById('voiceStatus').textContent='Testing...';
+  await speakText('This is Zeezoapp speaking. Your voice is working. Now let\'s get to work.');
+  document.getElementById('voiceStatus').textContent='✓ Voice test complete';
+}
+function resetSchedule(){
+  if(!confirm('Reset all blocks to default? This cannot be undone.')) return;
+  schedule=JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+  save(); scheduleAlarms(); refreshCurrentPage(); showToast('Schedule reset ✓');
+}
+
+// ═══════════════════ NAV ═══════════════════
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='today') renderToday();
+  else if(name==='week') renderWeekView();
+  else if(name==='fullweek') renderFullWeek();
+  else if(name==='stretches') renderStretches();
+  else if(name==='motivation') renderDeepMotivation();
+  else if(name==='settings') loadSettings();
+}
+
+// ═══════════════════ TOAST ═══════════════════
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
+
+// ═══════════════════ INSTALL ═══════════════════
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const btn=document.getElementById('installBtn');if(btn)btn.style.display='block';});
+function installApp(){ if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(()=>deferredInstall=null);} }
+
+// ═══════════════════ CLOSE MODALS ON BACKDROP ═══════════════════
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+// ═══════════════════ SERVICE WORKER ═══════════════════
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').then(()=>{scheduleAlarms();}).catch(()=>{});
+}
+
+// ═══════════════════ MIDNIGHT REFRESH ═══════════════════
+function midnightRefresh(){
+  const n=new Date(),m=new Date(n);m.setHours(24,0,5,0);
+  setTimeout(()=>{scheduleAlarms();renderToday();midnightRefresh();},m-n);
+}
+midnightRefresh();
+
+// ═══════════════════ DAILY QUOTE ═══════════════════
+function pickDailyQuote(){
+  const day=Math.floor((new Date()-new Date(new Date().getFullYear(),0,0))/86400000);
+  quoteIdx=day%QUOTES.length; save();
+}
+
+// ═══════════════════ INIT ═══════════════════
+pickDailyQuote();
+renderToday();
+</script>
+</body>
+</html>
